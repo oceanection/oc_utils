@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 import numpy as np
 
 from PIL import Image
-import face_recognition
 from chardet import detect
 
 from io import BytesIO
@@ -13,8 +12,7 @@ from urllib.parse import urlparse
 import time
 
 
-
-
+CHECK = 'Git success. created by oceanection.'
 
 session = requests.Session()
 
@@ -50,17 +48,13 @@ def add_external_urls(url):
         external_urls.append(url)
 
 def summary():
+    print("\n==============================================================")
     print(f'Internal URLs: {len(internal_urls)}')
     print(f'External URLs: {len(external_urls)}')
     print(f'Jpeg URLs: {len(jpeg_urls)}')
     print(f'Downloaded URLs {len(downloaded_urls)}')
     print(f'Scraped URLs: {len(scraped_urls)}')
-
-def dump(dump_path):
-    d = np.array(internal_urls).reshape((-1, 1))
-    np.savetxt(os.path.join(dump_path, 'internal_urls.csv'), d)
-
-
+    print('================================================================')
 
 
 def get_bs(url):
@@ -115,7 +109,6 @@ def get_urls(bs, base_url):
                 add_external_urls(url)
     summary()
 
-
 def download(url, save_path, min_width, min_height):
     """指定のフォルダにダウンロードする。
     Args:
@@ -162,6 +155,7 @@ def get_img(bs, save_path, min_width, min_height):
                 download(img_url, save_path, min_width, min_height)
     else:
         return
+
 
 def crawl(url, save_path, min_width=25, min_height=25):
     r = urlparse(url)

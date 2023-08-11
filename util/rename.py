@@ -14,8 +14,3 @@ def rename_jpg(dir_path):
             rn += 1
         else:
             os.rename(os.path.join(dir_path,file), os.path.join(dir_path, file))
-            
-        
-if __name__ == '__main__':
-    dir_path = os.path.join(os.getenv("HOME"), 'Pictures', 'sample')
-    rename()
