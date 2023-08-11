@@ -1,2 +1,2 @@
-# scraping_project
-画像スクレイピング用
+# oc_utils
+Scraping JPRG files.
