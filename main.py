@@ -1,24 +1,16 @@
-from crawler import Crawler
+from oc_crawler import Crawler, Downloader
 import os
 
 def main():
-    test_url = 'http://blog.livedoor.jp/ele01/archives/17198881.html'
-    download_path = os.path.join(os.getenv('HOME'), 'Pictures', 'raw_data')
-    print(download_path)
-    crawler = Crawler(test_url)
-    links = crawler.get_links(end='jpg')
+    save_path = '/Users/yousukeyamamoto/Pictures/raw_data'
+    url = 'https://mabui-onna.com/blog-entry-9.html'
     
-def scrape():
-    pass
-
-def insert():
-    pass
-
-def dump():
-    pass
-
-def init_db():
-    pass
+    sample_urls = ['https://blog-imgs-101.fc2.com/g/m/8/gm8j46mpp36s/cooltext351950364688987.jpg', 
+     'https://blogthumbnail.fc2.com/r72/143/g/m/8/gm8j46mpp36s/2021021413431000b.jpg']
+    
+      
+    d = Downloader(sample_urls,save_path)
+    d.download()
 
 if __name__ == "__main__":
     main()

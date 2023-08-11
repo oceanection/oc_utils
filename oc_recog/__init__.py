@@ -2,7 +2,6 @@ from PIL import Image
 import face_recognition
 import os
 
-
 def recognition(files_path, save_dir):
     """顔画像を抽出して保存する。抽出に成功した画像は削除される
     

@@ -1,6 +1,6 @@
 import os
 
-def rename(dir_path):
+def rename_jpg(dir_path):
     """フォルダ内のjpegファイル名を変更する。1から連番で変更する。
     Args:
         dir_path (str) :
