@@ -18,7 +18,6 @@ session = requests.Session()
 
 scraped_urls = []
 downloaded_urls = []
-jpeg_urls = []
 internal_urls = []
 external_urls = []
 
@@ -35,10 +34,6 @@ def add_downloaded_urls(url):
     if url not in downloaded_urls:
         downloaded_urls.append(url)
 
-def add_jpeg_urls(url):
-    if url not in jpeg_urls:
-        jpeg_urls.append(url)
-
 def add_internal_urls(url):
     if url not in internal_urls:
         internal_urls.append(url)
@@ -48,14 +43,13 @@ def add_external_urls(url):
         external_urls.append(url)
 
 def summary():
-    print("\n==============================================================")
-    print(f'Internal URLs: {len(internal_urls)}')
-    print(f'External URLs: {len(external_urls)}')
-    print(f'Jpeg URLs: {len(jpeg_urls)}')
+    print("\n========================================================================")
+    print(f'Internal URLs: {len(internal_urls)}, Scraped URLs: {len(scraped_urls)}')
+    print('\n')
     print(f'Downloaded URLs {len(downloaded_urls)}')
-    print(f'Scraped URLs: {len(scraped_urls)}')
-    print('================================================================')
-
+    print(f'External URLs: {len(external_urls)}')
+    print('===========================================================================')
+    time.sleep(1)
 
 def get_bs(url):
     add_scraped_urls(url)
@@ -106,7 +100,8 @@ def get_urls(bs, base_url):
             if is_internal_url(url, base_url) and url not in scraped_urls:
                 add_internal_urls(url)
             else:
-                add_external_urls(url)
+                if url not in external_urls:
+                    add_external_urls(url)
     summary()
 
 def download(url, save_path, min_width, min_height):

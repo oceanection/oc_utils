@@ -4,6 +4,29 @@ import os
 
 CHECK = 'Git success. created by oceanection.'
 
+def delete_image(file_path):
+    os.remove(file_path)
+
+def is_person(directory_path):
+    jpg_file_list = [l for l in os.listdir(directory_path) if l.find('jpg') != -1]
+    print(jpg_file_list)
+    for file_path in jpg_file_list:
+        try:
+            # 顔認識
+            image = face_recognition.load_image_file(file_path)
+            face_locations = face_recognition.face_locations(image)
+            
+            if len(face_locations) == 0:
+                print(f'No Face {file_path}')
+                return False
+            else:
+                print(f'Face exist. {file_path}')
+                return True
+            
+        except Exception as e:
+            print(e)
+            return False
+
 def recognition(files_path, save_dir):
     """顔画像を抽出して保存する。抽出に成功した画像は削除される
     
@@ -53,9 +76,3 @@ def recognition(files_path, save_dir):
             print(f'ERROR: {file_path}')
             os.remove(file_path)
             continue
-            
-if __name__ == '__main__':
-    path = os.path.join(os.getenv("HOME"),'Pictures', 'sample')
-    files = [os.path.join(path, filename) for filename in os.listdir(path) if filename.find('.jpg') != -1]
-    save_dir = os.path.join(os.getenv('HOME'), 'Pictures', 'data')
-    recognition(files, save_dir)
