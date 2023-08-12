@@ -144,7 +144,7 @@ def download(url, save_path, resize, min_size):
                 x_min, y_min = min_size
                 if (x >= x_min and y >= y_min):
                     if resize > 1:
-                        img_r = resize(img, resize)
+                        img_r = img_resize(img, resize)
                         filename = url.split('/')[-1]
                         img_r.save(os.path.join(save_path, filename))
                         print(' Download: {}'.format(filename))
@@ -256,3 +256,10 @@ def crawl(url, save_path, dump_path=None, resize=300, min_size=(50,50), epoch=10
                 dump(downloaded_urls)
         
         num_epochs += 1
+
+
+
+if __name__ == '__main__':
+    save_path = '/Users/yousukeyamamoto/Pictures/raw_data'
+    url = 'https://mabui-onna.com/blog-entry-9.html'
+    crawl(url,save_path)
