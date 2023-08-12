@@ -13,6 +13,7 @@ def rename_jpg(dir_path):
     """
     rn = 1
     for file in os.listdir(dir_path):
+        
         if (file.find(('.jpg')) != -1):
             os.rename(os.path.join(dir_path,file), os.path.join(dir_path, str(rn)+'.jpg'))
             rn += 1
@@ -45,15 +46,23 @@ def delete_duplicate_jpg_files(dir_path):
     except IndexError:
         pass
 
-def img_resize(path, width=300, height=300):
+def img_resize(path, size=300):
+    """画像のリサイズ. 縦横比を維持する.
+    
+    Args:
+        path (str): 画像ファイルのパス
+        size (int): 指定サイズ
+    """
     img = Image.open(path)
-    w_ratio = width / img.width
-    h_ratio = height / img.height
+    
+    # 比率計算
+    w_ratio = size / img.width
+    h_ratio = size / img.height
 
     if w_ratio < h_ratio:
-        resize_size = (width, round(img.height * w_ratio))
+        resize_size = (size, round(img.height * w_ratio))
     else:
-        resize_size = (round(img.width * h_ratio), height)
+        resize_size = (round(img.width * h_ratio), size)
 
     img_r = img.resize(resize_size)
     return img_r
