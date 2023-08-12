@@ -7,25 +7,38 @@ CHECK = 'Git success. created by oceanection.'
 def delete_image(file_path):
     os.remove(file_path)
 
-def is_person(directory_path):
-    jpg_file_list = [l for l in os.listdir(directory_path) if l.find('jpg') != -1]
-    print(jpg_file_list)
-    for file_path in jpg_file_list:
+def delete_no_person_jpg_files(directory_path):
+    """顔認識できないJPEGファイルを削除する
+    
+    Args:
+        directory_path (str): フォルダパス
+    Returns:
+        None:
+    """
+    jpg_filenames = [l for l in os.listdir(directory_path) if l.find('.jpg') != -1]
+    num_files = len(jpg_filenames)
+    count = 1
+    d_count = 0
+    for filename in jpg_filenames:
+        print(f'\r{count} / {num_files},  delete {d_count}', end='')
+        count += 1
         try:
             # 顔認識
-            image = face_recognition.load_image_file(file_path)
+            image = face_recognition.load_image_file(os.path.join(directory_path, filename))
             face_locations = face_recognition.face_locations(image)
-            
-            if len(face_locations) == 0:
-                print(f'No Face {file_path}')
-                return False
-            else:
-                print(f'Face exist. {file_path}')
-                return True
-            
+
+            if len(face_locations) == 0:        
+                delete_image(os.path.join(directory_path, filename))
+                d_count += 1
+                
         except Exception as e:
+            print('ERROR')
             print(e)
-            return False
+    
+    print("================================================================")
+    print(f'{count} / {num_files}')
+    print(f'Delete {d_count} files.')
+    print("================================================================")
 
 def recognition(files_path, save_dir):
     """顔画像を抽出して保存する。抽出に成功した画像は削除される
