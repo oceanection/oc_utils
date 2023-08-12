@@ -1,7 +1,8 @@
 venv
 .venv
 sample.py
-sample.ipynb
+*.ipynb
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

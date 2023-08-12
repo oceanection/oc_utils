@@ -15,14 +15,13 @@ def delete_no_person_jpg_files(directory_path):
         directory_path (str): フォルダパス
     Returns:
         None:
-    """
-    
+    """  
     jpg_filenames = glob(f'{directory_path}/*.jpg')
     num_files = len(jpg_filenames)
     count = 1
     d_count = 0
     for filename in jpg_filenames:
-        print(f'{count} / {num_files},  delete {d_count}')
+        print(f'\r\r{count} / {num_files},  delete {d_count}', end='')
         count += 1
         try:
             # 顔認識
@@ -36,11 +35,6 @@ def delete_no_person_jpg_files(directory_path):
         except Exception as e:
             print('ERROR')
             print(e)
-    
-    print("================================================================")
-    print(f'{count} / {num_files}')
-    print(f'Delete {d_count} files.')
-    print("================================================================")
 
 def recognition(files_path, save_dir):
     """顔画像を抽出して保存する。抽出に成功した画像は削除される

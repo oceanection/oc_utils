@@ -28,19 +28,32 @@ def delete_duplicate_jpg_files(dir_path):
     ls = [(l, os.path.getsize(l)) for l in ls]
     ls = sorted(ls, key=lambda x: x[1])
     
-    
     count = 1
     d_count = 0
     try:
         for i in range(len(ls)):
-            print(f'{count} / {num_files}: delete {d_count}')
+            print(f'\r{count} / {num_files}: delete {d_count}', end='')
             img1 = Image.open(ls[i][0])
             img2 = Image.open(ls[i+1][0])
             img1_np = np.array(img1)
             img2_np = np.array(img2)
+            count += 1
             if np.array_equal(img1_np, img2_np):
                 os.remove(ls[i][0])
                 d_count += 1
                 
     except IndexError:
         pass
+
+def img_resize(path, width=300, height=300):
+    img = Image.open(path)
+    w_ratio = width / img.width
+    h_ratio = height / img.height
+
+    if w_ratio < h_ratio:
+        resize_size = (width, round(img.height * w_ratio))
+    else:
+        resize_size = (round(img.width * h_ratio), height)
+
+    img_r = img.resize(resize_size)
+    return img_r

@@ -104,11 +104,24 @@ def get_urls(bs, base_url):
                     add_external_urls(url)
     summary()
 
-def download(url, save_path, min_width, min_height):
+def img_resize(img, size=300):
+    w_ratio = size / img.width
+    h_ratio = size / img.height
+
+    if w_ratio < h_ratio:
+        resize_size = (size, round(img.height * w_ratio))
+    else:
+        resize_size = (round(img.width * h_ratio), size)
+
+    img_r = img.resize(resize_size)
+    return img_r
+
+def download(url, save_path, resize, min_width, min_height):
     """指定のフォルダにダウンロードする。
     Args:
         url (str): ダウンロードURL
         save_path (str): 保存先パス
+        resize (int): 画像のリサイズ指定
         min_width (int):
         min_heigght (int):
     Returns:
@@ -123,10 +136,17 @@ def download(url, save_path, min_width, min_height):
                 img = Image.open(BytesIO(req.content))
                 x, y = img.size
                 if (x >= min_width and y >= min_height):
-                    filename = url.split('/')[-1]
-                    img.save(os.path.join(save_path, filename))
-                    print(' Download: {}'.format(filename))
-                    return 1
+                    if resize != 0:
+                        img_r = resize(img, resize)
+                        filename = url.split('/')[-1]
+                        img_r.save(os.path.join(save_path, filename))
+                        print(' Download: {}'.format(filename))
+                        return 1    
+                    else:
+                        filename = url.split('/')[-1]
+                        img.save(os.path.join(save_path, filename))
+                        print(' Download: {}'.format(filename))
+                        return 1
             else:
                 return -1
         except Exception as e:
@@ -134,12 +154,16 @@ def download(url, save_path, min_width, min_height):
             print(f'Url: {url}')
             return -1
 
-def get_img(bs, save_path, min_width, min_height):
+def get_img(bs, save_path, resize, min_width, min_height):
     """ページ内に<img>タグの"src"属性の値を返す.
     jpgファイルがあるときはダウンロードする.
     
     Args:
-        bs (BeautifuleSoup):
+        bs (BeautifuleSoup): BeautifulSoupオブジェクト
+        save_path (str):保存先パス
+        resize (int): 画像のリサイズ指定
+        min_width (int): 画像の最低幅
+        min_height (int): 画像の最低高さ
     Returns:
         srcs(List['str',])
     """
@@ -147,20 +171,34 @@ def get_img(bs, save_path, min_width, min_height):
         for img in bs.find_all('img', src=re.compile(f'^(http|https).*\.jpg$')):
             img_url = img.attrs['src']
             if  img_url is not None:
-                download(img_url, save_path, min_width, min_height)
+                download(img_url, save_path, resize, min_width, min_height)
     else:
         return
 
+def dump(urls):
+    urls_np = np.array(urls)
+    np.savetxt('downloaded.txt', urls_np, fmt='%s')
 
-def dump(ls, filepath=None):
-    if filepath is None:
-        pass
-    else:
-        pass
+def load(dump_path):
+    urls_np = np.loadtxt(dump_path, dtype='str')
+    return urls_np.tolist()
 
-def crawl(url, save_path, dump_file_path=None, min_width=25, min_height=25):
+def crawl(url, save_path, dump_downloaded_path=None, resize=300, min_width=30, min_height=30):
+    """
+    Args:
+        url (str): URLパス
+        save_path (str): 保存先パス
+        dump_downloaded_path (str): ダウンロード済URLのtxtファイル
+        resize (int): 画像のリサイズ指定. 初期値300.リサイズしないときは0を渡す.
+        min_width (int): 画像の最低幅. 初期値30.
+        min_height (int): 画像の最低高さ. 初期値30.
+    """
     r = urlparse(url)
     base_url = f'{r[0]}://{r[1]}'
+    
+    if dump_downloaded_path:
+        global downloaded_urls 
+        downloaded_urls = load(dump_downloaded_path)
     
     # 最初のページをスクレイピング
     bs = get_bs(url)
@@ -172,5 +210,8 @@ def crawl(url, save_path, dump_file_path=None, min_width=25, min_height=25):
         url = internal_urls.pop(0)
         bs = get_bs(url)
         if bs is not None:
-            get_img(bs, save_path, min_width, min_height)
+            get_img(bs, save_path, resize, min_width, min_height)
             get_urls(bs, base_url)
+            
+            if len(scraped_urls) % 10 == 0:
+                dump(downloaded_urls)
