@@ -127,8 +127,7 @@ def download(url, save_path, resize, min_size):
         url (str): ダウンロードURL
         save_path (str): 保存先パス
         resize (int): 画像のリサイズ指定
-        min_width (int):
-        min_heigght (int):
+        min_size (tuple(int, int)):
     Returns:
         1 | -1
     """
@@ -144,7 +143,7 @@ def download(url, save_path, resize, min_size):
                 x, y = img.size
                 x_min, y_min = min_size
                 if (x >= x_min and y >= y_min):
-                    if resize != 0:
+                    if resize > 1:
                         img_r = resize(img, resize)
                         filename = url.split('/')[-1]
                         img_r.save(os.path.join(save_path, filename))
