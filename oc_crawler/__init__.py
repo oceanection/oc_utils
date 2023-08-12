@@ -23,7 +23,6 @@ internal_urls = []
 external_urls = []
 
 download_count = 0
-directory_count = 1
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:76.0) Gecko/20100101 Firefox/76.0",
                         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -147,7 +146,7 @@ def download(url, save_path, resize, min_size):
                         img_r = img_resize(img, resize)
                         filename = url.split('/')[-1]
                         img_r.save(os.path.join(save_path, filename))
-                        print(' Download: {}'.format(filename))
+                        print('  Download: {}'.format(filename))
                         download_count += 1
                         return 1    
                     else:
@@ -168,20 +167,29 @@ def init_directory(save_path):
     raw_data_?がすでに作成されているときは、数字が最後のフォルダパスを返す。
     
     Args:
-        save_path (str): ダウンロード先のフォルダ
+        save_path (str): ダウンロード指定フォルダ
+    Returns:
+        save_detail_path (str): ダウンロード指定フォルダ内のうち, JPGファイルをダウンロードするフォルダパス
     """
     dirs = glob(f'{save_path}/raw_data_*')
     dirs = sorted(dirs)
     if len(dirs) == 0:
         os.makedirs(os.path.join(save_path, 'raw_data_1'))
-        save_path = os.path.join(save_path, 'raw_data_1')
-        return save_path
+        save_detail_path = os.path.join(save_path, 'raw_data_1')
+        return save_detail_path
     else:
-        return dirs[-1]
+        save_detail_path = dirs[-1]
+        return save_detail_path
 
-def chane_directory(save_detail_path, save_path):
+def chane_directory(save_detail_path, save_path, num_jpg_files):
+    """ダウンロード数が指定の数を超えた場合、ダウンロードフォルダを切り替える。
+    Args:
+        save_detail_path (str): ダウンロード指定フォルダのうち,JPGファイルをダウンロードするフォルダパス
+        save_path (str): ダウンロード先
+        num_jpg_files (int): 1フォルダあたりのJPGファイル数
+    """
     global download_count
-    num = (download_count // 10000) + 1
+    num = (download_count // num_jpg_files) + 1
     if os.path.exists(f'{save_path}/raw_data_{num}'):
         return save_detail_path
     else:
@@ -215,20 +223,22 @@ def load(dump_path):
     urls_np = np.loadtxt(dump_path, dtype='str')
     return urls_np.tolist()
 
-def crawl(url, save_path, dump_path=None, resize=300, min_size=(50,50), epoch=1000000):
-    """
+def crawl(url, save_path, dump_path=None, num_jpg_files=5000, resize=300, min_size=(50,50), epoch=1000000):
+    """JPGファイルをダウンロードするMain関数
     Args:
         url (str): URLパス
         save_path (str): 保存先パス
         dump_path (str): ダウンロード済URLのtxtファイル
+        num_jpg_files (int): フォルダ1つにつきダウンロードするJPEGファイル数
         resize (int): 画像のリサイズ指定. 初期値300.リサイズしないときは0を渡す.
         min_size (tuple(int, int)): ダウンロードする画像の大きさ制限. 初期値50.
+        epoch (int): クロールするWebページ数.初期値1000000.
     """
     r = urlparse(url)
     base_url = f'{r[0]}://{r[1]}'
     
     if dump_path:
-        global downloaded_urls 
+        global downloaded_urls
         downloaded_urls = load(dump_path)
 
     save_detail_path = init_directory(save_path)
@@ -248,7 +258,7 @@ def crawl(url, save_path, dump_path=None, resize=300, min_size=(50,50), epoch=10
         url = internal_urls.pop(0)
         bs = get_bs(url)
         if bs is not None:
-            save_detail_path = chane_directory(save_detail_path, save_path)
+            save_detail_path = chane_directory(save_detail_path, save_path, num_jpg_files)
             get_img(bs, save_detail_path, resize, min_size)
             get_urls(bs, base_url)
             
@@ -256,10 +266,3 @@ def crawl(url, save_path, dump_path=None, resize=300, min_size=(50,50), epoch=10
                 dump(downloaded_urls)
         
         num_epochs += 1
-
-
-
-if __name__ == '__main__':
-    save_path = '/Users/yousukeyamamoto/Pictures/raw_data'
-    url = 'https://mabui-onna.com/blog-entry-9.html'
-    crawl(url,save_path)
