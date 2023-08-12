@@ -22,7 +22,7 @@ def delete_no_person_jpg_files(directory_path):
     count = 1
     d_count = 0
     for filename in jpg_filenames:
-        print(f'\r{count} / {num_files},  delete {d_count}', end='')
+        print(f'{count} / {num_files},  delete {d_count}')
         count += 1
         try:
             # 顔認識
