@@ -2,7 +2,7 @@ venv
 .venv
 sample.py
 *.ipynb
-
+downloaded.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

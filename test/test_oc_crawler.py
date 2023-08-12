@@ -1,2 +1,8 @@
-def test_base_url():
+from oc_crawler import *
+
+
+def test_bs():
+    pass
+
+def test_crawler():
     pass

@@ -12,13 +12,10 @@ def rename_jpg(dir_path):
         None
     """
     rn = 1
-    for file in os.listdir(dir_path):
-        
-        if (file.find(('.jpg')) != -1):
-            os.rename(os.path.join(dir_path,file), os.path.join(dir_path, str(rn)+'.jpg'))
-            rn += 1
-        else:
-            os.rename(os.path.join(dir_path,file), os.path.join(dir_path, file))
+    ls = glob(f'{dir_path}/*.jpg')
+    for file in ls:
+        os.rename(file, f'{dir_path}/{str(rn)}.jpg')
+
 
 def delete_duplicate_jpg_files(dir_path):
     """フォルダ内の同一画像を削除する
