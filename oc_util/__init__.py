@@ -1,4 +1,5 @@
 import os
+from glob import glob
 
 import numpy as np
 from PIL import Image
@@ -21,7 +22,8 @@ def rename_jpg(dir_path):
 def delete_duplicate_jpg_files(dir_path):
     """フォルダ内の同一画像を削除する
     """
-    ls = [(os.path.join(dir_path, l), os.path.getsize(os.path.join(dir_path, l))) for l in os.listdir(dir_path) if l.find('.jpg') != -1]
+    ls = glob(f'{dir_path}/*.jpg')
+    ls = [(l, os.path.getsize(l)) for l in ls]
     ls = sorted(ls, key=lambda x: x[1])
     
     num_files = len(ls)
@@ -29,7 +31,7 @@ def delete_duplicate_jpg_files(dir_path):
     d_count = 0
     try:
         for i in range(len(ls)):
-            print(f'\r {count} / {num_files}: delete {d_count}', end='')
+            print(f'\r\r {count} / {num_files}: delete {d_count}', end='')
             img1 = Image.open(ls[i][0])
             img2 = Image.open(ls[i+1][0])
             img1_np = np.array(img1)

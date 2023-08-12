@@ -1,6 +1,7 @@
 from PIL import Image
 import face_recognition
 import os
+from glob import glob
 
 CHECK = 'Git success. created by oceanection.'
 
@@ -15,7 +16,8 @@ def delete_no_person_jpg_files(directory_path):
     Returns:
         None:
     """
-    jpg_filenames = [l for l in os.listdir(directory_path) if l.find('.jpg') != -1]
+    
+    jpg_filenames = glob(f'{directory_path}/*.jpg')
     num_files = len(jpg_filenames)
     count = 1
     d_count = 0
@@ -24,11 +26,11 @@ def delete_no_person_jpg_files(directory_path):
         count += 1
         try:
             # 顔認識
-            image = face_recognition.load_image_file(os.path.join(directory_path, filename))
+            image = face_recognition.load_image_file(filename)
             face_locations = face_recognition.face_locations(image)
 
             if len(face_locations) == 0:        
-                delete_image(os.path.join(directory_path, filename))
+                delete_image(filename)
                 d_count += 1
                 
         except Exception as e:

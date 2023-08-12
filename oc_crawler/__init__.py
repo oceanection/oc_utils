@@ -152,7 +152,13 @@ def get_img(bs, save_path, min_width, min_height):
         return
 
 
-def crawl(url, save_path, min_width=25, min_height=25):
+def dump(ls, filepath=None):
+    if filepath is None:
+        pass
+    else:
+        pass
+
+def crawl(url, save_path, dump_file_path=None, min_width=25, min_height=25):
     r = urlparse(url)
     base_url = f'{r[0]}://{r[1]}'
     
