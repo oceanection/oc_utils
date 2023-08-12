@@ -132,6 +132,8 @@ def download(url, save_path, resize, min_size):
     Returns:
         1 | -1
     """
+    global download_count
+    
     if url not in downloaded_urls:
         try:
             add_downloaded_urls(url)
@@ -147,14 +149,12 @@ def download(url, save_path, resize, min_size):
                         filename = url.split('/')[-1]
                         img_r.save(os.path.join(save_path, filename))
                         print(' Download: {}'.format(filename))
-                        global download_count
                         download_count += 1
                         return 1    
                     else:
                         filename = url.split('/')[-1]
                         img.save(os.path.join(save_path, filename))
                         print(' Download: {}'.format(filename))
-                        global download_count
                         download_count += 1
                         return 1
             else:
