@@ -6,7 +6,6 @@ import shutil
 
 import numpy as np
 from PIL import Image
-import cv2
 
 def rename_data(dir_path, ext='jpg'):
     """フォルダ内のjpegファイル名を変更する。1から連番で変更する。
@@ -94,7 +93,6 @@ def img_resize(path, size=300):
 def img_rotate(path, size=300, direction='v'):
     """
     """
-    
     img = Image.open(path)
     width, height = img.size
     
@@ -127,7 +125,7 @@ def save_data(dir_path:str, data, dtype='fp', ext='jpg',filename='', dir_name='d
     Arg:
         dir_path (str): 保存先フォルダパス
         data (Any): コピーするデータ
-        dtype (str): dataの種類。ファイルパス'fp'、 バイナリデータ'b'、 OpenCV'cv2',  Pllow'plw'.
+        dtype (str): dataの種類。ファイルパス'fp'、 バイナリデータ'b'、Pllow'plw'.
         ext (str): 拡張子. 初期値はファイルパス'fp'
         filename (str): ファイル名
         dir_name (str): 下位フォルダの名前. 初期値は'data'
@@ -136,10 +134,7 @@ def save_data(dir_path:str, data, dtype='fp', ext='jpg',filename='', dir_name='d
         detail_dir_path (str): 保存先下位フォルダパス
     """  
     def _save(data, dtype, name, path, ext):
-        if dtype == 'cv2':
-            data.imwrite(f'{path}/{name}.{ext}')
-            return path
-        elif dtype == 'plw':
+        if dtype == 'plw':
             data.save(f'{path}/{name}.{ext}')
             return path
         elif dtype == 'b':
