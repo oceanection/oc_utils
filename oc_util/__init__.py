@@ -1,24 +1,31 @@
 import os
 from glob import glob
+import uuid
+import re
+import shutil
 
 import numpy as np
 from PIL import Image
+import cv2
 
-def rename_jpg(dir_path):
+def rename_data(dir_path, ext='jpg'):
     """フォルダ内のjpegファイル名を変更する。1から連番で変更する。
     Args:
-        dir_path (str) :
+        dir_path (str) : フォルダパス
+        ext (str): 拡張子タイプ
     Returns:
         None
     """
     rn = 1
-    ls = glob(f'{dir_path}/*.jpg')
+    ls = glob(f'{dir_path}/*.{ext}')
     for file in ls:
-        os.rename(file, f'{dir_path}/{str(rn)}.jpg')
+        os.rename(file, f'{dir_path}/{str(rn)}.{ext}')
 
 
 def delete_duplicate_jpg_files(dir_path):
     """フォルダ内の同一画像を削除する
+    Args:
+        dir_path:
     """
     ls = glob(f'{dir_path}/*.jpg')
     num_files = len(ls)
@@ -63,3 +70,110 @@ def img_resize(path, size=300):
 
     img_r = img.resize(resize_size)
     return img_r
+
+def img_rotate(path, size=300, direction='v'):
+    """
+    """
+    
+    img = Image.open(path)
+    width, height = img.size
+    
+    print(f'width: {width}, height: {height}')
+    
+    if direction == 'v':
+        if width == size:
+            img_r = img.rotate(90)
+            img_r.save(path)
+        else:
+            pass
+    elif direction == 'h':
+        if width == size:
+            pass
+        else:
+            img_r = img.rotate(90)
+            img_r.save(path)
+    else:
+        pass
+
+
+def collect_v(dir_path, save_path):
+    pass
+
+
+
+def save_data(dir_path:str, data, dtype='fp', ext='jpg',filename='', dir_name='data', limit=10000):
+    """指定のフォルダ内にJPGファイルなどをコピーする。下位フォルダを作成し、上限ファイル数を超えた場合には新たなフォルダを作成する。
+
+    Arg:
+        dir_path (str): 保存先フォルダパス
+        data (Any): コピーするデータ
+        dtype (str): dataの種類。ファイルパス'fp'、 バイナリデータ'b'、 OpenCV'cv2',  Pllow'plw'.
+        ext (str): 拡張子. 初期値はファイルパス'fp'
+        filename (str): ファイル名
+        dir_name (str): 下位フォルダの名前. 初期値は'data'
+        limit (int): 下位フォルダの保存上限数
+    Returns:
+        detail_dir_path (str): 保存先下位フォルダパス
+    """  
+    def _save(data, dtype, name, path, ext):
+        if dtype == 'cv2':
+            data.imwrite(f'{path}/{name}.{ext}')
+            return path
+        elif dtype == 'plw':
+            data.save(f'{path}/{name}.{ext}')
+            return path
+        elif dtype == 'b':
+            with open(f'{path}/{name}.{ext}', 'wb') as f:
+                f.write(data)
+            return path
+        elif dtype == 'fp':
+            shutil.copy(data, f'{path}/{name}.{ext}')
+            return path
+
+    # 保存先フォルダの検索
+    dirs = glob(f'{dir_path}/{dir_name}_*')
+    
+    # ファイル名
+    if filename == '':
+        filename = uuid.uuid4()
+    
+    if len(dirs) == 0:
+        os.mkdir(f'{dir_path}/{dir_name}_1')
+        detail_dir_path = f'{dir_path}/{dir_name}_1'
+        detail_dir_path = _save(data, dtype, filename, detail_dir_path, ext)
+        return detail_dir_path
+        
+    else:
+        # 保存先フォルダの並べかえ（昇順）
+        dirs = [[int(d.split('_')[-1]), d] for d in glob(f'{dir_path}/{dir_name}_*')]
+        dirs = sorted(dirs, key=lambda x: x[0])
+        dirs = [d[1] for d in dirs] 
+       
+        detail_dir_path = dirs[-1]
+        files = glob(f'{detail_dir_path}/*.{ext}')
+        
+        name_count = 1
+        if f'{detail_dir_path}/{filename}.{ext}' in files:
+            old_filename = filename
+            while f'{detail_dir_path}/{filename}.{ext}' in files:
+                name_count += 1
+                filename = f'{filename}({str(name_count)})'
+            filename = f'{old_filename}({str(name_count)})'
+        
+        if len(files) <= limit:
+            detail_dir_path = _save(data, dtype, filename, detail_dir_path, ext)
+            return detail_dir_path
+        else:
+            last_num = int(detail_dir_path.split('_')[-1])
+            os.mkdir(f'{dir_path}/{dir_name}_{last_num+1}')
+            detail_dir_path = f'{dir_path}/{dir_name}_{last_num+1}'
+            detail_dir_path = _save(data, dtype, filename, detail_dir_path, ext)
+            return detail_dir_path
+
+if __name__ == '__main__':
+    fp = '/Users/yousukeyamamoto/Pictures/save_test/data_1/a.jpg'
+    spath = '/Users/yousukeyamamoto/Pictures/save_test'
+
+    save_data(spath,fp, filename='a')
+    save_data(spath,fp, filename='a')
+    save_data(spath,fp, filename='a')

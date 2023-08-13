@@ -12,6 +12,9 @@ from urllib.parse import urlparse, urljoin
 import time
 from glob import glob
 
+import zipfile
+import shutil
+
 
 CHECK = 'Git success. created by oceanection.'
 
@@ -201,6 +204,8 @@ def chane_directory(save_detail_path:str, save_path:str, limit_jpg_files:int):
         save_detail_path (str): ダウンロード指定フォルダのうち,JPGファイルをダウンロードするフォルダパス
         save_path (str): ダウンロード先
         limit_jpg_files (int): 1フォルダあたりのJPGファイル上限数
+    Returns:
+        save_detail_path (str): ダウンロード指定フォルダå
     """
     # 直近のダウンロードフォルダ内のファイル数
     count_jpg_files = len(glob(f'{save_detail_path}/*jpg'))   
@@ -216,8 +221,6 @@ def chane_directory(save_detail_path:str, save_path:str, limit_jpg_files:int):
         return save_detail_path    
     else:
         return save_detail_path
-        
-    
 
 def get_img(bs:BeautifulSoup, save_path:str, resize:int, min_size:(int, int)):
     """ページ内に<img>タグの"src"属性の値を返す.
@@ -229,7 +232,6 @@ def get_img(bs:BeautifulSoup, save_path:str, resize:int, min_size:(int, int)):
         resize (int): 画像のリサイズ指定
         min_size (tuple(int, int)): 画像の大きさ指定
     Returns:
-        srcs(List['str',])
     """
     if bs is not None:
         for img in bs.find_all('img', src=re.compile(f'^(http|https).*\.jpg$')):
@@ -246,12 +248,6 @@ def dump(urls:list):
 def load(dump_path:str):
     urls_np = np.loadtxt(dump_path, dtype='str')
     return urls_np.tolist()
-
-def get_base_url(url:str):
-    r = urlparse(url)
-    base_url = f'{r[0]}://{r[1]}'
-    return base_url
-    
 
 def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(50,50), epoch=1000000):
     """JPGファイルをダウンロードするMain関数
@@ -284,11 +280,11 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(50
         time.sleep(1)
         
         url = internal_urls.pop(0)
-        bs = get_bs(url)
+        bs, url = get_bs(url)
         if bs is not None:
             save_detail_path = chane_directory(save_detail_path, save_path, limit_jpg_files)
             get_img(bs, save_detail_path, resize, min_size)
             dump(downloaded_urls)
-            get_urls(bs, base_url)
+            get_urls(bs, url)
         
         num_epochs += 1 
