@@ -8,7 +8,7 @@ from chardet import detect
 from io import BytesIO
 import os
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 import time
 from glob import glob
 
@@ -46,7 +46,7 @@ def add_external_urls(url:str):
         external_urls.append(url)
 
 def summary():
-    print("\n=========================================================================")
+    print("\n===========================================================================")
     print(f'Internal URLs: {len(internal_urls)}, Scraped URLs: {len(scraped_urls)}')
     print('\n')
     print(f'Downloaded URLs {len(downloaded_urls)}')
@@ -54,34 +54,29 @@ def summary():
     print('===========================================================================')
     time.sleep(1)
 
+
 def get_bs(url:str):
+    """Beautifulsoupオブジェクトとurlを返す
+    Args:
+        url (str): 
+    Returns:
+        bs, url (BeautifulSoup, str): 
+    """
     add_scraped_urls(url)
     print(f'Scraping... {url}')
         
     try:
-        req = session.get(url, headers=HEADERS, allow_redirects=True)
-        enc = detect(req.content)
+        res = session.get(url, headers=HEADERS, allow_redirects=True)
+        enc = detect(res.content)
         if enc['encoding'] is None:
-            bs = BeautifulSoup(req.content, 'html.parser')
-            return bs
+            bs = BeautifulSoup(res.content, 'html.parser')
+            return (bs, url)
         else:
-            bs = BeautifulSoup(req.content, 'html.parser', from_encoding=enc['encoding'])
-            return bs
+            bs = BeautifulSoup(res.content, 'html.parser', from_encoding=enc['encoding'])
+            return (bs, url)
     except Exception as e:
         print(f'Error: {e}')
-        return None
-
-def is_internal_url(url:str, base_url:str):
-    """内部URLかどうかの判定
-    Args:
-        urls (List['str',]):
-    Returns:
-        internal_urls (List['str',]):
-    """
-    if url.find(base_url) != -1:
-        return True
-    else:
-        return False
+        return (None, None)
 
 def is_jpg(url:str):
     if url.find('.jpg') != -1:
@@ -89,11 +84,11 @@ def is_jpg(url:str):
     else:
         return False
 
-def get_urls(bs:BeautifulSoup, base_url:str):
+def get_urls(bs:BeautifulSoup, url:str):
     """ページ内のhref属性のURLを返す
     Args:
         bs (BeautifulSoup): BeautifulSoupオブジェクト
-        base_url (str): netloc 
+        url (str): netloc 
     Returns:
         Pages(List['str',]) | []
     """
@@ -101,17 +96,26 @@ def get_urls(bs:BeautifulSoup, base_url:str):
         print("ERROR: BeautifulSoup object is None.")
         return
     
-    # 絶対パスが指定されている場合
-    for link in bs.find_all('a', href=re.compile(f'^(http|https).*$')):
-        if link.attrs['href'] is not None:
-            url = link.attrs['href']
-            #内部ページかつスクレイピング済でないかの判定    
-            if (is_internal_url(url, base_url)) and (url not in scraped_urls):
-                add_internal_urls(url)
-            else:
-                if url not in external_urls:
-                    add_external_urls(url)    
+    for a_tag in bs.find_all('a'):
+        try:
+            if a_tag.attrs['href'] is not None:
+                a_tag_url = urljoin(url, a_tag.get("href"))
+                
+                r = urlparse(url)
+                # 同じドメイン内のURLかの判定
+                if a_tag_url.find(r.netloc) != -1 and re.search(r'^http.*', a_tag_url):
+                    #スクレイピング済でないかの判定 
+                    if a_tag_url not in scraped_urls:
+                        add_internal_urls(a_tag_url)
+                else:
+                    if re.search(r'^http.*', a_tag_url):
+                        add_external_urls(a_tag_url) 
+        except Exception as e:
+            pass 
+
     summary()
+    return (internal_urls, external_urls)
+
 
 def img_resize(img, size:int):
     """画像のリサイズ
@@ -259,8 +263,6 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(50
         min_size (tuple(int, int)): ダウンロードする画像の大きさ制限. 初期値50.
         epoch (int): クロールするWebページ数.初期値1000000.
     """
-    r = urlparse(url)
-    base_url = f'{r[0]}://{r[1]}'
     
     if os.path.exists(os.path.join(os.getcwd(),'downloaded.txt')):
         dump_path = os.path.join(os.getcwd(),'downloaded.txt')
@@ -270,8 +272,8 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(50
     save_detail_path = init_directory(save_path)
     
     # 最初のページをスクレイピング
-    bs = get_bs(url)
-    get_urls(bs, base_url)
+    bs, url = get_bs(url)
+    get_urls(bs, url)
     get_img(bs, save_detail_path, resize, min_size)
 
     num_epochs = 0
