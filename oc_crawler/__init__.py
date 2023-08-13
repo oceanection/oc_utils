@@ -27,7 +27,7 @@ download_count = 0
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:76.0) Gecko/20100101 Firefox/76.0",
                         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
                         "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
-                        "Accept-Encoding": "gzip, deflate, br"}
+                        }
 
 def add_scraped_urls(url:str):
     if url not in scraped_urls:
@@ -62,9 +62,11 @@ def get_bs(url:str):
         req = session.get(url, headers=HEADERS, allow_redirects=True)
         enc = detect(req.content)
         if enc['encoding'] is None:
-            return BeautifulSoup(req.content, 'html.parser')
+            bs = BeautifulSoup(req.content, 'html.parser')
+            return bs
         else:
-            return BeautifulSoup(req.content, 'html.parser', from_encoding=enc['encoding'])
+            bs = BeautifulSoup(req.content, 'html.parser', from_encoding=enc['encoding'])
+            return bs
     except Exception as e:
         print(f'Error: {e}')
         return None
@@ -240,6 +242,12 @@ def dump(urls:list):
 def load(dump_path:str):
     urls_np = np.loadtxt(dump_path, dtype='str')
     return urls_np.tolist()
+
+def get_base_url(url:str):
+    r = urlparse(url)
+    base_url = f'{r[0]}://{r[1]}'
+    return base_url
+    
 
 def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(50,50), epoch=1000000):
     """JPGファイルをダウンロードするMain関数
