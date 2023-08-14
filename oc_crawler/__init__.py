@@ -222,11 +222,14 @@ def download_raw_data(url):
         url, content (str, Requests.response) | (url, None):
     """
     if (url not in scraped_urls) and (url not in downloaded_urls) and (url not in external_urls):
-        r = requests.get(url)
-        if r.status_code == 200:
-            return (url, r.content)
-        else:
-            return (url, None)
+        try:
+            r = requests.get(url)
+            if r.status_code == 200:
+                return (url, r.content)
+            else:
+                return (url, None)
+        except Exception as e:
+            print(e)
     else:
         return (url, None)
 
