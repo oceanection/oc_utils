@@ -15,10 +15,6 @@ from urllib.parse import urlparse, urljoin
 import time
 from glob import glob
 
-import zipfile
-import shutil
-
-
 CHECK = 'Git success. created by oceanection.'
 
 session = requests.Session()
@@ -234,13 +230,25 @@ def download_raw_data(url):
         return (url, None)
 
 def is_jpg_url(img_url):
-    if bool(re.match(r'.*\.jpg$', img_url)):
+    '''jpgの絶対パスかどうかを判定する
+    Args:
+        img_url (str):
+    Returns:
+        bool
+    '''
+    if bool(re.match(r'^http.*\.jpg$', img_url)):
         return True
     else:
         return False
 
 def is_png_url(img_url):
-    if bool(re.match(r'.*\.png$', img_url)):
+    '''pngの絶対パスかどうかを判定する
+    Args:
+        img_url (str):
+    Returns:
+        bool
+    '''
+    if bool(re.match(r'^http.*\.png$', img_url)):
         return True
     else:
         return False
@@ -287,6 +295,9 @@ def url_analysis(img_url, url):
             print(f'ERROR: img_urlが正しく分析できない. {img_url}')
             return None
 
+def url_analysis_with_extention(img_url, url):
+    original = urlparse(url)
+    _ = urlparse(img_url)    
 
 def get_img(bs:BeautifulSoup, url:str, save_path:str, resize:int, min_size:(int, int)):
     """ページ内に<img>タグの"src"属性の値を返す.
