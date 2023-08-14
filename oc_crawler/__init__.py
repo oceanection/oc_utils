@@ -153,7 +153,7 @@ def img_resize(img, size:int):
     return img_r
 
 def download(url:str, data:bytes, save_detail_path:str, resize:int, min_size:tuple):
-    """指定のフォルダにダウンロードする。
+    """指定のフォルダにJPG, PNGファイルをダウンロードする。
     Args:
         url (str): ダウンロードURL
         data (bytes):バイナリデータ
@@ -163,12 +163,13 @@ def download(url:str, data:bytes, save_detail_path:str, resize:int, min_size:tup
     Returns:
         1 | -1
     """
-    global download_count   
+    global download_count
+    
     if url not in downloaded_urls:
         try:
             add_downloaded_urls(url)
             
-            if data is None:          
+            if data is None:
                 req = session.get(url, headers=HEADERS)
                 if req.status_code == 200:
                     data = req.content
@@ -179,7 +180,10 @@ def download(url:str, data:bytes, save_detail_path:str, resize:int, min_size:tup
             elif is_png(data):
                 ext = 'png'
             else:
-                ext = 'jpg'      
+                # JPG, PNGファイルでないときはダウンロードされない
+                print("Download error: No jpg or png file.")
+                print(f'  URL: {url}')
+                return -1
 
             filename = f'{uuid.uuid4()}.{ext}'
 
@@ -202,15 +206,84 @@ def download(url:str, data:bytes, save_detail_path:str, resize:int, min_size:tup
                     return 1                 
         except Exception as e:
             print(f' Download Error: {e}')
-            print(f'  Url: {url}')
+            print(f'  URL: {url}')
             return -1
 
 def download_raw_data(url):
-    r = requests.get(url)
-    if r.status_code == 200:
-        return (url, r.content)
+    """<img>タグのsrc属性にクエリパラメータが含まれるURLの場合, RequestsライブラリでHEADERをセットしたSessionではデータをちゃんと受けとれない？ので、
+    Sessionを外してデータを受け取る.
+    クエリを含むURLがdownloaded_urls, scraped_urlsに含まれるときはダウンロードしない。
+    また、external_urlsに含まれる時も同じくダウンロードされない.
+    
+    
+    Args:
+        url (str): 
+    Returns:
+        url, content (str, Requests.response) | (url, None):
+    """
+    if (url not in scraped_urls) and (url not in downloaded_urls) and (url not in external_urls):
+        r = requests.get(url)
+        if r.status_code == 200:
+            return (url, r.content)
+        else:
+            return (url, None)
     else:
         return (url, None)
+
+def is_jpg_url(img_url):
+    if bool(re.match(r'.*\.jpg$', img_url)):
+        return True
+    else:
+        return False
+
+def is_png_url(img_url):
+    if bool(re.match(r'.*\.png$', img_url)):
+        return True
+    else:
+        return False
+
+def url_analysis(img_url, url):
+    """相対パスの分析. <img>タグのsrc属性には、絶対パスもあれば相対パスもあるので、
+    相対パスの場合に元のURLと繋げる処理をする 
+    
+    Args:
+        img_url (str):
+        url (str): 
+    Return:
+        img_url (str | None)
+    """
+    origin = urlparse(url)
+    _ =  urlparse(img_url)
+    
+    # URLにクエリが含まれるケース
+    if _.query != '':
+        if _.scheme != '' and _.netloc != '' and _.path != '':
+            return img_url
+        elif _.netloc != '' and _.path != '':
+            return f'{origin.scheme}://{_.netloc}{_.path}?{_.query}'
+        elif _.path != '':
+            return f'{origin.scheme}://{origin.netloc}{_.path}?{_.query}'
+        elif _.netloc != '':
+            return f'{origin.scheme}://{_.netloc}/?{_.query}'
+        else:
+            return f'{origin.scheme}://{origin.netloc}{origin.path}?{_.query}'
+    
+    # クエリが含まれないケース
+    else:
+        if _.scheme != '' and _.netloc != '' and _.path != '':
+            return f'{_.scheme}://{_.netloc}{_.path}'
+        elif  _.netloc != '' and _.path != '':
+            return f'{origin.scheme}://{_.netloc}{_.path}'
+        elif _.path != '':
+            return f'{origin.scheme}://{origin.netloc}{_.path}'
+        elif _.scheme != '' and _.netloc != '':
+            return f'{_.scheme}://{_.netloc}'
+        elif _.netloc != '':
+            return f'{origin.scheme}://{_.netloc}'
+        else:
+            print(f'ERROR: img_urlが正しく分析できない. {img_url}')
+            return None
+
 
 def get_img(bs:BeautifulSoup, url:str, save_path:str, resize:int, min_size:(int, int)):
     """ページ内に<img>タグの"src"属性の値を返す.
@@ -225,7 +298,7 @@ def get_img(bs:BeautifulSoup, url:str, save_path:str, resize:int, min_size:(int,
     Returns:
     """
     if bs is None:
-        print("ERROR: BeautifulSoup object is None.")
+        print(f"ERROR: BeautifulSoup object is None. at {url}")
         return
     
     else:
@@ -233,18 +306,23 @@ def get_img(bs:BeautifulSoup, url:str, save_path:str, resize:int, min_size:(int,
             img_url = img_tag.get('src')
             
             data = None
-            p = urlparse(img_url)
-            if p.query != '':
-                if p.scheme != '':
-                    img_url, data, = download_raw_data(img_url)
-                elif p.scheme == '' and p.netloc == '':
-                    _ = urlparse(url)
-                    img_url, data = download_raw_data(f'{_.scheme}://{_.netloc}{p.path}{p.query}')
-                elif p.scheme == '':
-                    _ = urlparse(url)
-                    img_url, data = download_raw_data(f'{_.scheme}://{p.netloc}{p.path}{p.query}')
             
-            download(img_url, data, save_path, resize, min_size)
+            # 拡張子がjpg, pngのURLのときはdownload関数を呼び出す。
+            if is_jpg_url(img_url) or is_png_url(img_url):
+                download(img_url, data, save_path, resize, min_size)
+
+            # <img>タグのsrc属性にクエリパラメータが含まれる場合、url_analysis関数を呼び出して、元のURLと繋げる処理をする.
+            img_url = url_analysis(img_url, url)
+            
+            # url_analysis関数でもimg_urlが正しく取得できていないので終了する.
+            if img_url is None:
+                print(f'ERROR: img_url is incorrect at {url}')
+                return
+            else:
+                # <img>タグのsrc属性にクエリパラメータが含まれるので、download_raw_data関数を呼び出して、コンテンツデータを取得しておいて、download関数へ渡す.
+                img_url, data = download_raw_data(img_url)
+                download(img_url, data, save_path, resize, min_size)
+
 
 def get_urls(bs:BeautifulSoup, url:str):
     """ページ内のhref属性のURLを返す
@@ -331,3 +409,9 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(50
         
         # スクレイピング回数の更新
         num_epochs += 1
+
+
+if __name__ == "__main__":
+    img_url, url, result =  ('//analyzer54.fc2.com/ana/icon.php?uid=2857848&ref=&href=&wid=0&hei=0&col=0', 'https://mabui-onna.com/blog-entry-9.html', 'https://mabui-onna.com/blog-entry-9.html/analyzer54.fc2.com/ana/icon.php?uid=2857848&ref=&href=&wid=0&hei=0&col=0')
+    r = url_analysis(img_url, url)
+    print(r)
