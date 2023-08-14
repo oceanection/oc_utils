@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import numpy as np
 
+import typing
+import uuid
+
 from PIL import Image
 from chardet import detect
 
@@ -49,135 +52,14 @@ def add_external_urls(url:str):
         external_urls.append(url)
 
 def summary():
+    global download_count
     print("\n===========================================================================")
     print(f'Internal URLs: {len(internal_urls)}, Scraped URLs: {len(scraped_urls)}')
     print('\n')
-    print(f'Downloaded URLs {len(downloaded_urls)}')
+    print(f'Downloaded URLs {len(downloaded_urls)},  Downloaded {download_count}')
     print(f'External URLs: {len(external_urls)}')
     print('===========================================================================')
     time.sleep(1)
-
-
-def get_bs(url:str):
-    """Beautifulsoupオブジェクトとurlを返す
-    Args:
-        url (str): 
-    Returns:
-        bs, url (BeautifulSoup, str): 
-    """
-    add_scraped_urls(url)
-    print(f'Scraping... {url}')
-        
-    try:
-        res = session.get(url, headers=HEADERS, allow_redirects=True)
-        enc = detect(res.content)
-        if enc['encoding'] is None:
-            bs = BeautifulSoup(res.content, 'html.parser')
-            return (bs, url)
-        else:
-            bs = BeautifulSoup(res.content, 'html.parser', from_encoding=enc['encoding'])
-            return (bs, url)
-    except Exception as e:
-        print(f'Error: {e}')
-        return (None, None)
-
-def is_jpg(url:str):
-    if url.find('.jpg') != -1:
-        return True
-    else:
-        return False
-
-def get_urls(bs:BeautifulSoup, url:str):
-    """ページ内のhref属性のURLを返す
-    Args:
-        bs (BeautifulSoup): BeautifulSoupオブジェクト
-        url (str): netloc 
-    Returns:
-        Pages(List['str',]) | []
-    """
-    if bs is None:
-        print("ERROR: BeautifulSoup object is None.")
-        return
-    
-    for a_tag in bs.find_all('a'):
-        try:
-            if a_tag.attrs['href'] is not None:
-                a_tag_url = urljoin(url, a_tag.get("href"))
-                
-                r = urlparse(url)
-                # 同じドメイン内のURLかの判定
-                if a_tag_url.find(r.netloc) != -1 and re.search(r'^http.*', a_tag_url):
-                    #スクレイピング済でないかの判定 
-                    if a_tag_url not in scraped_urls:
-                        add_internal_urls(a_tag_url)
-                else:
-                    if re.search(r'^http.*', a_tag_url):
-                        add_external_urls(a_tag_url) 
-        except Exception as e:
-            pass 
-
-    summary()
-    return (internal_urls, external_urls)
-
-
-def img_resize(img, size:int):
-    """画像のリサイズ
-    Args:
-        img (PIL.JpegImagePlugin.JpegImageFile): Pillow
-        size (int): 拡大縮小サイズの指定.
-    """
-    w_ratio = size / img.width
-    h_ratio = size / img.height
-
-    if w_ratio < h_ratio:
-        resize_size = (size, round(img.height * w_ratio))
-    else:
-        resize_size = (round(img.width * h_ratio), size)
-
-    img_r = img.resize(resize_size)
-    return img_r
-
-def download(url:str, save_detail_path:str, resize:int, min_size:tuple):
-    """指定のフォルダにダウンロードする。
-    Args:
-        url (str): ダウンロードURL
-        save_path (str): 保存先パス
-        resize (int): 画像のリサイズ指定
-        min_size (tuple(int, int)):
-    Returns:
-        1 | -1
-    """
-    global download_count
-    
-    if url not in downloaded_urls:
-        try:
-            add_downloaded_urls(url)
-            
-            req = session.get(url, headers=HEADERS)
-            if req.content is not None:
-                img = Image.open(BytesIO(req.content))
-                x, y = img.size
-                x_min, y_min = min_size
-                if (x >= x_min and y >= y_min):
-                    if resize > 1:
-                        img_r = img_resize(img, resize)
-                        filename = url.split('/')[-1]
-                        img_r.save(os.path.join(save_detail_path, filename))
-                        print('  Download: {}'.format(filename))
-                        download_count += 1
-                        return 1    
-                    else:
-                        filename = url.split('/')[-1]
-                        img.save(os.path.join(save_detail_path, filename))
-                        print(' Download: {}'.format(filename))
-                        download_count += 1
-                        return 1
-            else:
-                return -1
-        except Exception as e:
-            print(f' Download Error: {e}')
-            print(f'  Url: {url}')
-            return -1
 
 def init_directory(save_path:str):
     """ダウンロード先のフォルダにraw_data_1フォルダを作成する。
@@ -222,24 +104,179 @@ def chane_directory(save_detail_path:str, save_path:str, limit_jpg_files:int):
     else:
         return save_detail_path
 
-def get_img(bs:BeautifulSoup, save_path:str, resize:int, min_size:(int, int)):
+def get_bs(url:str):
+    """Beautifulsoupオブジェクトとurlを返す
+    Args:
+        url (str): 
+    Returns:
+        bs, url (BeautifulSoup, str): 
+    """
+    add_scraped_urls(url)
+    print(f'Scraping... {url}')
+        
+    try:
+        res = session.get(url, headers=HEADERS, allow_redirects=True)
+        enc = detect(res.content)
+        if enc['encoding'] is None:
+            bs = BeautifulSoup(res.content, 'html.parser')
+            return (bs, url)
+        else:
+            bs = BeautifulSoup(res.content, 'html.parser', from_encoding=enc['encoding'])
+            return (bs, url)
+    except Exception as e:
+        print(f'Error: {e}')
+        return (None, None)
+
+def is_png(b: bytes) -> bool:
+    """バイナリの先頭部分からPNGファイルかどうかを判定する。"""
+    return bool(re.match(b"^\x89\x50\x4e\x47\x0d\x0a\x1a\x0a", b[:8]))
+
+def is_jpg(b: bytes) -> bool:
+    """バイナリの先頭部分からJPEGファイルかどうかを判定する。"""
+    return bool(re.match(b"^\xff\xd8", b[:2]))
+
+def img_resize(img, size:int):
+    """画像のリサイズ
+    Args:
+        img: Pillow
+        size (int): 拡大縮小サイズの指定.
+    """
+    w_ratio = size / img.width
+    h_ratio = size / img.height
+
+    if w_ratio < h_ratio:
+        resize_size = (size, round(img.height * w_ratio))
+    else:
+        resize_size = (round(img.width * h_ratio), size)
+
+    img_r = img.resize(resize_size)
+    return img_r
+
+def download(url:str, data:bytes, save_detail_path:str, resize:int, min_size:tuple):
+    """指定のフォルダにダウンロードする。
+    Args:
+        url (str): ダウンロードURL
+        data (bytes):バイナリデータ
+        save_path (str): 保存先パス
+        resize (int): 画像のリサイズ指定
+        min_size (tuple(int, int)):
+    Returns:
+        1 | -1
+    """
+    global download_count   
+    if url not in downloaded_urls:
+        try:
+            add_downloaded_urls(url)
+            
+            if data is None:          
+                req = session.get(url, headers=HEADERS)
+                if req.status_code == 200:
+                    data = req.content
+            
+            ext = ''
+            if is_jpg(data):
+                ext = 'jpg'
+            elif is_png(data):
+                ext = 'png'
+            else:
+                ext = 'jpg'      
+
+            filename = f'{uuid.uuid4()}.{ext}'
+
+            img = Image.open(BytesIO(data))
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            x, y = img.size
+            x_min, y_min = min_size
+            if (x >= x_min and y >= y_min):
+                if resize > 1:
+                    img_r = img_resize(img, resize)
+                    img_r.save(os.path.join(save_detail_path, filename))
+                    print('  Download: {}'.format(filename))
+                    download_count += 1
+                    return 1    
+                else:
+                    img.save(os.path.join(save_detail_path, filename))
+                    print(' Download: {}'.format(filename))
+                    download_count += 1
+                    return 1                 
+        except Exception as e:
+            print(f' Download Error: {e}')
+            print(f'  Url: {url}')
+            return -1
+
+def download_raw_data(url):
+    r = requests.get(url)
+    if r.status_code == 200:
+        return (url, r.content)
+    else:
+        return (url, None)
+
+def get_img(bs:BeautifulSoup, url:str, save_path:str, resize:int, min_size:(int, int)):
     """ページ内に<img>タグの"src"属性の値を返す.
     jpgファイルがあるときはダウンロードする.
     
     Args:
         bs (BeautifulSoup): BeautifulSoupオブジェクト
+        url (str): URL 
         save_path (str):保存先パス
         resize (int): 画像のリサイズ指定
         min_size (tuple(int, int)): 画像の大きさ指定
     Returns:
     """
-    if bs is not None:
-        for img in bs.find_all('img', src=re.compile(f'^(http|https).*\.jpg$')):
-            img_url = img.attrs['src']
-            if  img_url is not None:
-                download(img_url, save_path, resize, min_size)
-    else:
+    if bs is None:
+        print("ERROR: BeautifulSoup object is None.")
         return
+    
+    else:
+        for img_tag in bs.find_all('img'):
+            img_url = img_tag.get('src')
+            
+            data = None
+            p = urlparse(img_url)
+            if p.query != '':
+                if p.scheme != '':
+                    img_url, data, = download_raw_data(img_url)
+                elif p.scheme == '' and p.netloc == '':
+                    _ = urlparse(url)
+                    img_url, data = download_raw_data(f'{_.scheme}://{_.netloc}{p.path}{p.query}')
+                elif p.scheme == '':
+                    _ = urlparse(url)
+                    img_url, data = download_raw_data(f'{_.scheme}://{p.netloc}{p.path}{p.query}')
+            
+            download(img_url, data, save_path, resize, min_size)
+
+def get_urls(bs:BeautifulSoup, url:str):
+    """ページ内のhref属性のURLを返す
+    Args:
+        bs (BeautifulSoup): BeautifulSoupオブジェクト
+        url (str): netloc 
+    Returns:
+        Pages(List['str',]) | []
+    """
+    if bs is None:
+        print("ERROR: BeautifulSoup object is None.")
+        return
+    
+    for a_tag in bs.find_all('a'):
+        try:
+            if a_tag.attrs['href'] is not None:
+                a_tag_url = urljoin(url, a_tag.get("href"))
+                
+                r = urlparse(url)
+                # 同じドメイン内のURLかの判定
+                if a_tag_url.find(r.netloc) != -1 and re.search(r'^http.*', a_tag_url):
+                    #スクレイピング済でないかの判定 
+                    if a_tag_url not in scraped_urls:
+                        add_internal_urls(a_tag_url)
+                else:
+                    if re.search(r'^http.*', a_tag_url):
+                        add_external_urls(a_tag_url) 
+        except Exception as e:
+            pass 
+
+    summary()
+    return (internal_urls, external_urls)
 
 def dump(urls:list):
     urls_np = np.array(urls)
@@ -270,21 +307,27 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(50
     # 最初のページをスクレイピング
     bs, url = get_bs(url)
     get_urls(bs, url)
-    get_img(bs, save_detail_path, resize, min_size)
+    get_img(bs, url, save_detail_path, resize, min_size)
 
-    num_epochs = 0
+    num_epochs = 1
     while len(internal_urls) != 0:
         if num_epochs == epoch:
             break
-        
         time.sleep(1)
         
+        # ドメイン内のURLから1つ取り出し、Beautifulオブジェクトを取得
         url = internal_urls.pop(0)
         bs, url = get_bs(url)
-        if bs is not None:
-            save_detail_path = chane_directory(save_detail_path, save_path, limit_jpg_files)
-            get_img(bs, save_detail_path, resize, min_size)
-            dump(downloaded_urls)
-            get_urls(bs, url)
         
-        num_epochs += 1 
+        # フォルダの保存上限を超えた場合のフォルダの切り替え
+        save_detail_path = chane_directory(save_detail_path, save_path, limit_jpg_files)
+        get_img(bs, url, save_detail_path, resize, min_size)
+        
+        # ダウンロードを試みたURLの出力
+        dump(downloaded_urls)
+        
+        # ページ内のURLの取得, internal_urlsに追加
+        get_urls(bs, url)
+        
+        # スクレイピング回数の更新
+        num_epochs += 1
