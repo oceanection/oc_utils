@@ -422,9 +422,3 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(15
         
         # スクレイピング回数の更新
         num_epochs += 1
-
-
-if __name__ == "__main__":
-    img_url, url, result =  ('//analyzer54.fc2.com/ana/icon.php?uid=2857848&ref=&href=&wid=0&hei=0&col=0', 'https://mabui-onna.com/blog-entry-9.html', 'https://mabui-onna.com/blog-entry-9.html/analyzer54.fc2.com/ana/icon.php?uid=2857848&ref=&href=&wid=0&hei=0&col=0')
-    r = url_analysis(img_url, url)
-    print(r)
