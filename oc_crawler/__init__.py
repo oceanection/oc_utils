@@ -378,7 +378,7 @@ def load(dump_path:str):
     urls_np = np.loadtxt(dump_path, dtype='str')
     return urls_np.tolist()
 
-def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(151,151), epoch=1000000, output=False, output_path=''):
+def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(151,151), epoch=1000000, output=True, output_path=''):
     """同じドメイン内をスクレイピングし、JPG,PNGファイルをダウンロードする。
     スクレイピング先のURL,保存先は必ず指定する必要がある。
     ページをクロールするごとに実行フォルダに「downloaded.txt」が保存される。成否を問わず、ダウンロードを試みたURLが出力される。
