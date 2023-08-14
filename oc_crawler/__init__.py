@@ -359,29 +359,35 @@ def get_urls(bs:BeautifulSoup, url:str):
     summary()
     return (internal_urls, external_urls)
 
-def dump(urls:list):
+def dump(urls:list, output_path):
     urls_np = np.array(urls)
-    np.savetxt('downloaded.txt', urls_np, fmt='%s')
+    np.savetxt(f'{output_path}/downloaded.txt', urls_np, fmt='%s')
 
 def load(dump_path:str):
     urls_np = np.loadtxt(dump_path, dtype='str')
     return urls_np.tolist()
 
-def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(50,50), epoch=1000000):
-    """JPGファイルをダウンロードするMain関数
+def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(151,151), epoch=1000000, output=False, output_path=''):
+    """同じドメイン内をスクレイピングし、JPG,PNGファイルをダウンロードする。
+    スクレイピング先のURL,保存先は必ず指定する必要がある。
+    ページをクロールするごとに実行フォルダに「downloaded.txt」が保存される。成否を問わず、ダウンロードを試みたURLが出力される。
+    何らかの原因で、実行中にエラーが発生して止まってしまった場合において、再度、実行したときは、「downloaded.txt」が読み込まれて、記載されたURLにはアクセスしない。
+    リサイズの要否などを再度設定して再実行するときは、「download.txt」は削除すること
+    
     Args:
         url (str): スプレイピング先のURLパス
-        save_path (str): 保存先パス
+        save_path (str): 保存先パス. 画像を保存する場合は下位のフォルダに「raw_data」というフォルダが作成されて、上限数まで保存される。
         limit_jpg_files (int): 1フォルダあたりのJPGファイル上限数. 初期値5000
-        resize (int): 画像のリサイズ指定. 初期値300.リサイズしないときは0を渡す.
-        min_size (tuple(int, int)): ダウンロードする画像の大きさ制限. 初期値50.
+        resize (int): 画像のリサイズ指定. 初期値300.リサイズしたくないときは0を渡す.
+        min_size (tuple(int, int)): ダウンロードする画像の大きさ制限. 初期値151.
         epoch (int): クロールするWebページ数.初期値1000000.
+        output (bool): ダウンロードのためアクセスしたURLを出力するかどうか。初期値はFalse
+        output_path (str): downloaded.txtの出力先。指定しない場合は、save_pathに格納される
     """
     
-    if os.path.exists(os.path.join(os.getcwd(),'downloaded.txt')):
-        dump_path = os.path.join(os.getcwd(),'downloaded.txt')
+    if os.path.exists(f'{save_path}/downloaded.txt'):
         global downloaded_urls
-        downloaded_urls = load(dump_path)
+        downloaded_urls = load(f'{save_path}/downloaded.txt')
 
     save_detail_path = init_directory(save_path)
     
@@ -405,7 +411,11 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(50
         get_img(bs, url, save_detail_path, resize, min_size)
         
         # ダウンロードを試みたURLの出力
-        dump(downloaded_urls)
+        if output:
+            if output_path != '':
+                dump(downloaded_urls, output_path)
+            else:
+                dump(downloaded_urls, save_path)
         
         # ページ内のURLの取得, internal_urlsに追加
         get_urls(bs, url)
