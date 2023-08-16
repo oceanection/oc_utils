@@ -221,13 +221,14 @@ def download_raw_data(url):
         try:
             r = requests.get(url)
             if r.status_code == 200:
-                return (url, r.content)
+                return r.content
             else:
-                return (url, None)
+                return
         except Exception as e:
             print(e)
+            return
     else:
-        return (url, None)
+        return
 
 def is_jpg_url(img_url):
     '''jpgの絶対パスかどうかを判定する
@@ -342,8 +343,11 @@ def get_img(bs:BeautifulSoup, url:str, save_path:str, resize:int, min_size:(int,
                 return
             else:
                 # <img>タグのsrc属性にクエリパラメータが含まれるので、download_raw_data関数を呼び出して、コンテンツデータを取得しておいて、download関数へ渡す.
-                img_url, data = download_raw_data(img_url)
-                download(img_url, data, save_path, resize, min_size)
+                data = download_raw_data(img_url)
+                if data is not None:
+                   download(img_url, data, save_path, resize, min_size)
+                else:
+                    return
 
 
 def get_urls(bs:BeautifulSoup, url:str):
