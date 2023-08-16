@@ -236,9 +236,13 @@ def is_jpg_url(img_url):
     Returns:
         bool
     '''
-    if bool(re.match(r'^http.*\.jpg$', img_url)):
-        return True
-    else:
+    try:
+        if bool(re.match(r'^http.*\.jpg$', img_url)):
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(e)
         return False
 
 def is_png_url(img_url):
@@ -248,9 +252,13 @@ def is_png_url(img_url):
     Returns:
         bool
     '''
-    if bool(re.match(r'^http.*\.png$', img_url)):
-        return True
-    else:
+    try:
+        if bool(re.match(r'^http.*\.png$', img_url)):
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(e)
         return False
 
 def url_analysis(img_url, url):
