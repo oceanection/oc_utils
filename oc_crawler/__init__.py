@@ -382,15 +382,24 @@ def get_urls(bs:BeautifulSoup, url:str):
     summary()
     return (internal_urls, external_urls)
 
-def dump(urls:list, output_path):
+def dump(filename, urls:list):
     urls_np = np.array(urls)
-    np.savetxt(f'{output_path}/downloaded.txt', urls_np, fmt='%s')
+    np.savetxt(filename, urls_np, fmt='%s')
 
 def load(dump_path:str):
     urls_np = np.loadtxt(dump_path, dtype='str')
     return urls_np.tolist()
 
-def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(151,151), epoch=1000000, output=True, output_path=''):
+
+def exc_end(path):
+    print(f'End scraping. Downloaded {len(downloaded_urls)}. Scraped {scraped_urls} site.')
+    dump(os.path.join(path,'download.txt'), downloaded_urls)
+    dump(os.path.join(path,'scraped_url.txt'), scraped_urls)
+    dump(os.path.join(path,'internal_url.txt'), internal_urls)
+    dump(os.path.join(path,'external_url.txt'), external_urls)
+    
+    
+def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(151,151), epoch=1000000):
     """同じドメイン内をスクレイピングし、JPG,PNGファイルをダウンロードする。
     スクレイピング先のURL,保存先は必ず指定する必要がある。
     ページをクロールするごとに実行フォルダに「downloaded.txt」が保存される。成否を問わず、ダウンロードを試みたURLが出力される。
@@ -404,8 +413,6 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(15
         resize (int): 画像のリサイズ指定. 初期値300.リサイズしたくないときは0を渡す.
         min_size (tuple(int, int)): ダウンロードする画像の大きさ制限. 初期値151.
         epoch (int): クロールするWebページ数.初期値1000000.
-        output (bool): ダウンロードのためアクセスしたURLを出力するかどうか。初期値はFalse
-        output_path (str): downloaded.txtの出力先。指定しない場合は、save_pathに格納される
     """
     
     if os.path.exists(f'{save_path}/downloaded.txt'):
@@ -420,29 +427,31 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(15
     get_img(bs, url, save_detail_path, resize, min_size)
 
     num_epochs = 1
-    while len(internal_urls) != 0:
-        if num_epochs == epoch:
-            break
-        time.sleep(1)
+    try:
+        while len(internal_urls) != 0:
+            if num_epochs == epoch:
+                break
+            time.sleep(1)
+            
+            # ドメイン内のURLから1つ取り出し、Beautifulオブジェクトを取得
+            url = internal_urls.pop(0)
+            bs, url = get_bs(url)
+            
+            # フォルダの保存上限を超えた場合のフォルダの切り替え
+            save_detail_path = chane_directory(save_detail_path, save_path, limit_jpg_files)
+            get_img(bs, url, save_detail_path, resize, min_size)
+            
+            # ダウンロードを試みたURLの出力
+            dump(os.path.join(save_path,'download.txt'), downloaded_urls)
+            
+            # ページ内のURLの取得, internal_urlsに追加
+            get_urls(bs, url)
+            
+            # スクレイピング回数の更新
+            num_epochs += 1
         
-        # ドメイン内のURLから1つ取り出し、Beautifulオブジェクトを取得
-        url = internal_urls.pop(0)
-        bs, url = get_bs(url)
+        exc_end(save_path)
+    except KeyboardInterrupt:
+        exc_end(save_path)
         
-        # フォルダの保存上限を超えた場合のフォルダの切り替え
-        save_detail_path = chane_directory(save_detail_path, save_path, limit_jpg_files)
-        get_img(bs, url, save_detail_path, resize, min_size)
         
-        # ダウンロードを試みたURLの出力
-        if output:
-            if output_path != '':
-                dump(downloaded_urls, output_path)
-            else:
-                dump(downloaded_urls, save_path)
-        
-        # ページ内のURLの取得, internal_urlsに追加
-        get_urls(bs, url)
-        
-        # スクレイピング回数の更新
-        num_epochs += 1
-

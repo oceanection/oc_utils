@@ -1,6 +1,6 @@
 venv
 .venv
-sample.py
+sample*.py
 *.ipynb
 downloaded.txt
 test/*.py
