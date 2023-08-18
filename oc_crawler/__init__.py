@@ -445,3 +445,4 @@ def crawl(url:str, save_path:str, limit_jpg_files=5000, resize=300, min_size=(15
         
         # スクレイピング回数の更新
         num_epochs += 1
+
