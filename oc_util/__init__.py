@@ -1,10 +1,13 @@
 import os
-from glob import glob
+import sys
 import uuid
 import re
 import shutil
 import typing
+from glob import glob
+from  collections import deque
 
+import cv2
 import numpy as np
 from PIL import Image
 
@@ -20,7 +23,6 @@ def rename_data(dir_path, ext='jpg'):
     ls = glob(f'{dir_path}/*.{ext}')
     for file in ls:
         os.rename(file, f'{dir_path}/{str(rn)}.{ext}')
-
 
 def delete_duplicate_jpg_files(dir_path:str, r=False):
     """フォルダ内の同一画像を削除する
@@ -206,3 +208,81 @@ def is_pdf(b: bytes) -> bool:
 def is_bmp(b: bytes) -> bool:
     """バイナリの先頭部分からWindows Bitmapファイルかどうかを判定する。"""
     return bool(re.match(b"^\x42\x4d", b[:2]))
+
+
+def img_console(dir_path:str, up_key:str, down_key:str, left_key:str, right_key:str):
+    """フォルダ内の画像を１枚ずつ表示して、不要な画像を削除。
+    ↑↓→←のキーで指定のフォルダに画像をコピーする。
+    Enterで次の画像、Bキーで戻る。
+    Dキー、バックスペースキーで画像を削除
+    Qキーで終了
+    
+    Args:
+        dir_path (str):
+        up_key (str):
+        down_key (str):
+        copy (bool):
+    Returns:
+    """
+    if not os.path.exists(dir_path) and not os.os.path.exists(up_key) and not os.os.path.exists(down_key) and not os.os.path.exists(right_key) and not os.os.path.exists(left_key):
+        return
+
+    filelist  = deque([d for d in glob(f'{dir_path}/*') if os.path.isfile(d) and re.search('\.(jpg|png)$', d)])
+    done_filelist = deque()
+    while len(filelist) > 0:
+        filepath = filelist.popleft()
+      
+        print('now: ', filepath)
+        
+        img = cv2.imread(filepath)
+        cv2.imshow('image', img)
+        
+        key = cv2.waitKey(0)
+        if key == ord('q'):
+            # 'q' key
+            cv2.destroyAllWindows()
+            sys.exit()
+        elif key == 13:
+            # Enter key
+            done_filelist.append(filepath)
+        elif key == ord('b'):
+            # 'b' key
+            if len(done_filelist) > 0:
+                filelist.appendleft(filepath)
+                previous_filepath = done_filelist.pop()
+                filelist.appendleft(previous_filepath)
+                continue
+            else:
+                filelist.appendleft(filepath)
+        elif key == ord('d') or key == 127:
+            # 'd' key
+            os.remove(filepath)
+            continue
+        elif key == 0:
+            # Up key
+            shutil.copy2(filepath, up_key)
+            done_filelist.append(filepath) 
+            continue
+        elif key == 1:
+            # Down Key
+            shutil.copy2(filepath, down_key)
+            done_filelist.append(filepath)
+            continue
+        elif key == 2:
+            # Left Key
+            shutil.copy2(filepath, left_key)
+            done_filelist.append(filepath)
+            continue
+        elif key == 3:
+            # Right key
+            shutil.copy2(filepath, right_key)
+            done_filelist.append(filepath)
+            continue
+        else:
+            # Other
+            filelist.appendleft(filepath)
+            continue
+    
+    cv2.destroyAllWindows()
+   
+
