@@ -4,6 +4,7 @@ sample*.py
 *.ipynb
 downloaded.txt
 test/*.py
+sample*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
